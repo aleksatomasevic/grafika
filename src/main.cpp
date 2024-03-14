@@ -165,7 +165,7 @@ int main() {
 
     // load models
     // -----------
-    Model ourModel("resources/objects/pivo/Corona.obj");
+    Model ourModel("resources/objects/kuca/cottage_obj.obj");
     ourModel.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
