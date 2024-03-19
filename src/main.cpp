@@ -137,7 +137,7 @@ int main() {
     }
 
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
+//    stbi_set_flip_vertically_on_load(true);
 
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
@@ -165,12 +165,15 @@ int main() {
 
     // load models
     // -----------
-    Model ourModel("resources/objects/kuca/cottage_obj.obj");
-    ourModel.SetShaderTextureNamePrefix("material.");
+    Model ourModel1("resources/objects/kuca/cottage_obj.obj");
+    ourModel1.SetShaderTextureNamePrefix("material.");
+
+    Model ourModel2("resources/objects/Tree/Tree.obj");
+    ourModel2.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
+    pointLight.position = glm::vec3(1.0f, 4.0, 0.0);
+    pointLight.ambient = glm::vec3(1.0, 1.0, 1.0);
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
@@ -227,7 +230,8 @@ int main() {
                                programState->backpackPosition); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        ourModel1.Draw(ourShader);
+        ourModel2.Draw(ourShader);
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
