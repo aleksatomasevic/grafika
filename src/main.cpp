@@ -32,6 +32,9 @@ unsigned int loadCubemap(vector<std::string> faces);
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+bool blinn = false;
+bool blinnKeyPressed = false;
+
 
 // camera
 //Camera camera(glm::vec3(0.0f, 0.0f, 1.0f));
@@ -146,6 +149,10 @@ int main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // TODO 01: Change culling
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
     if (programState->ImGuiEnabled) {
@@ -171,6 +178,66 @@ int main() {
     Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
     Shader ourskyboxShader("resources/shaders/6.1.skybox.vs", "resources/shaders/6.1.skybox.fs");
     Shader shader("resources/shaders/3.2.blending.vs", "resources/shaders/3.2.blending.fs");
+    Shader shaderMetal("resources/shaders/metalblending.vs","resources/shaders/metalblending.fs");
+    Shader Cubeshader("resources/shaders/4.2.face_culling.vs", "resources/shaders/4.2.face_culling.fs");
+
+    float cubeVertices[] = {
+            // back face
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // bottom-left
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // top-left
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // bottom-left
+            // front face
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // top-right
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // top-right
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, // top-left
+            // left face
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-right
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-left
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-left
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-left
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-right
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-right
+            // right face
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-left
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-right
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-right
+            0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-left
+            // bottom face
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // top-right
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-left
+            0.5f, -0.5f, -0.5f,  1.0f, 1.0f, // top-left
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-left
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // top-right
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-right
+            // top face
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // top-left
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f  // top-left
+    };
+
+    // cube VAO
+    unsigned int cubeVAO, cubeVBO;
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    glBindVertexArray(cubeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
 
 
     float planeVertices[] = {
@@ -197,6 +264,8 @@ int main() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
     unsigned int floorTexture = loadTexture(FileSystem::getPath("resources/textures/fabric-of-squares.png").c_str());
+    unsigned int floorMetalTexture = loadTexture(FileSystem::getPath("resources/textures/metal.png").c_str());
+    unsigned int cubeTexture  = loadTexture(FileSystem::getPath("resources/textures/matrix.jpg").c_str());
 
 
     float skyboxVertices[] = {
@@ -314,7 +383,7 @@ int main() {
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(1.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(1.0, 1.0, 1.0);
+    pointLight.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
@@ -358,6 +427,8 @@ int main() {
         ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
         ourShader.setVec3("viewPosition", programState->camera.Position);
         ourShader.setFloat("material.shininess", 32.0f);
+        shader.setInt("blinn", blinn);
+
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
                                                 (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
@@ -384,9 +455,9 @@ int main() {
 
         // floor
         model = glm::mat4(1.0f);
-        shader.use();
+        shaderMetal.use();
         glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        glBindTexture(GL_TEXTURE_2D, floorMetalTexture);
         shader.setMat4("projection", projection);
         shader.setMat4("view", view);
         model = glm::mat4(1.0f);
@@ -397,6 +468,7 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         model = glm::mat4(1.0f);
+        shader.use();
         glBindVertexArray(planeVAO);
         glBindTexture(GL_TEXTURE_2D, floorTexture);
         shader.setMat4("projection", projection);
@@ -404,15 +476,44 @@ int main() {
         model = glm::mat4(1.0f);
         model = glm::translate(model,
                                glm::vec3(9.5f,0.0f,0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f));
-        model = glm::rotate(model, 1.57f, glm::vec3(.0f,0.0f,1.0f));
+        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
+        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        model = glm::mat4(1.0f);
+        glBindVertexArray(planeVAO);
+        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        shader.setMat4("projection", projection);
+        shader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               glm::vec3(-9.5f,0.0f,0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
+        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        //kocke
+        model = glm::mat4(1.0f);
+        Cubeshader.use();
+        Cubeshader.setMat4("view", view);
+        Cubeshader.setMat4("projection", projection);
+        glCullFace(GL_FRONT);
+        glBindVertexArray(cubeVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cubeTexture);
+        model = glm::translate(model, glm::vec3(-7.0f, -0.5f, -1.0f));
+        model = glm::scale(model, glm::vec3(2.0f,2.0f,2.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
 
         // draw skybox as last
+        glDisable(GL_CULL_FACE);
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         ourskyboxShader.use();
         view = glm::mat4(glm::mat3(programState->camera.GetViewMatrix())); // remove translation from the view matrix
@@ -425,7 +526,10 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
         glDepthFunc(GL_LESS); // set depth function back to default
+        glEnable(GL_CULL_FACE);
 
+
+//        std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -462,6 +566,16 @@ void processInput(GLFWwindow *window) {
         programState->camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(RIGHT, deltaTime);
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !blinnKeyPressed)
+    {
+        blinn = !blinn;
+        blinnKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE)
+    {
+        blinnKeyPressed = false;
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
