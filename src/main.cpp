@@ -142,6 +142,10 @@ int main() {
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
 //    stbi_set_flip_vertically_on_load(true);
 
+    // GLBLEND
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
     if (programState->ImGuiEnabled) {
@@ -166,6 +170,34 @@ int main() {
     // -------------------------
     Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
     Shader ourskyboxShader("resources/shaders/6.1.skybox.vs", "resources/shaders/6.1.skybox.fs");
+    Shader shader("resources/shaders/3.2.blending.vs", "resources/shaders/3.2.blending.fs");
+
+
+    float planeVertices[] = {
+            // positions          // texture Coords
+            5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+            -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
+            -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+
+            5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+            -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+            5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+    };
+
+    // plane VAO
+    unsigned int planeVAO, planeVBO;
+    glGenVertexArrays(1, &planeVAO);
+    glGenBuffers(1, &planeVBO);
+    glBindVertexArray(planeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    unsigned int floorTexture = loadTexture(FileSystem::getPath("resources/textures/fabric-of-squares.png").c_str());
+
 
     float skyboxVertices[] = {
             // positions
@@ -241,17 +273,31 @@ int main() {
 
 //                    FileSystem::getPath("resources/textures/ulukai/corona_lf.png"),
 //                    FileSystem::getPath("resources/textures/ulukai/corona_rt.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_ft.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_bk.png"),
 //                    FileSystem::getPath("resources/textures/ulukai/corona_up.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_dn.png")
+//                    FileSystem::getPath("resources/textures/ulukai/corona_dn.png"),
+//                    FileSystem::getPath("resources/textures/ulukai/corona_ft.png"),
+//                    FileSystem::getPath("resources/textures/ulukai/corona_bk.png")
 
-                    FileSystem::getPath("resources/textures/xpos.png"),
-                    FileSystem::getPath("resources/textures/xneg.png"),
-                    FileSystem::getPath("resources/textures/ypos.png"),
-                    FileSystem::getPath("resources/textures/yneg.png"),
-                    FileSystem::getPath("resources/textures/zpos.png"),
-                    FileSystem::getPath("resources/textures/zneg.png")
+//                    FileSystem::getPath("resources/textures/xpos.png"),
+//                    FileSystem::getPath("resources/textures/xneg.png"),
+//                    FileSystem::getPath("resources/textures/ypos.png"),
+//                    FileSystem::getPath("resources/textures/yneg.png"),
+//                    FileSystem::getPath("resources/textures/zpos.png"),
+//                    FileSystem::getPath("resources/textures/zneg.png")
+
+                    FileSystem::getPath("resources/textures/svemir1/skybox_right.png"),
+                    FileSystem::getPath("resources/textures/svemir1/skybox_left.png"),
+                    FileSystem::getPath("resources/textures/svemir1/skybox_up.png"),
+                    FileSystem::getPath("resources/textures/svemir1/skybox_down_rotate.png"),
+                    FileSystem::getPath("resources/textures/svemir1/skybox_back.png"),
+                    FileSystem::getPath("resources/textures/svemir1/skybox_front.png")
+
+//                    FileSystem::getPath("resources/textures/galaxy/galaxy+X.tga"),
+//                    FileSystem::getPath("resources/textures/galaxy/galaxy-X.tga"),
+//                    FileSystem::getPath("resources/textures/galaxy/galaxy+Y.tga"),
+//                    FileSystem::getPath("resources/textures/galaxy/galaxy-Y.tga"),
+//                    FileSystem::getPath("resources/textures/galaxy/galaxy+Z.tga"),
+//                    FileSystem::getPath("resources/textures/galaxy/galaxy-Z.tga")
             };
     unsigned int cubemapTexture = loadCubemap(faces);
     ourskyboxShader.use();
@@ -259,8 +305,9 @@ int main() {
 
     // load models
     // -----------
-    Model ourModel1("resources/objects/kuca/cottage_obj.obj");
+    Model ourModel1("resources/objects/svemirski/Intergalactic_Spaceship-(Wavefront).obj");
     ourModel1.SetShaderTextureNamePrefix("material.");
+
 
     Model ourModel2("resources/objects/Tree/Tree.obj");
     ourModel2.SetShaderTextureNamePrefix("material.");
@@ -318,6 +365,7 @@ int main() {
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
+
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
@@ -325,7 +373,41 @@ int main() {
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel1.Draw(ourShader);
+
+        // render the loaded model 2
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               glm::vec3(2.0f,0.0f,1.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(2.0f));    // it's a bit too big for our scene, so scale it down
+        ourShader.setMat4("model", model);
         ourModel2.Draw(ourShader);
+
+        // floor
+        model = glm::mat4(1.0f);
+        shader.use();
+        glBindVertexArray(planeVAO);
+        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        shader.setMat4("projection", projection);
+        shader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               glm::vec3(0.0f,-0.70f,0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(2.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        model = glm::mat4(1.0f);
+        glBindVertexArray(planeVAO);
+        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        shader.setMat4("projection", projection);
+        shader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               glm::vec3(9.5f,0.0f,0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(1.0f));
+        model = glm::rotate(model, 1.57f, glm::vec3(.0f,0.0f,1.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -343,6 +425,7 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
         glDepthFunc(GL_LESS); // set depth function back to default
+
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
