@@ -194,6 +194,8 @@ int main() {
     Shader Cubeshader("resources/shaders/4.2.face_culling.vs", "resources/shaders/4.2.face_culling.fs");
     Shader shaderLightHdr("resources/shaders/6.lighting.vs", "resources/shaders/6.lighting.fs");
     Shader hdrShader("resources/shaders/6.hdr.vs", "resources/shaders/6.hdr.fs");
+    Shader spaceShip1Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
+    Shader spaceShip2Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
 
     // configure floating point framebuffer
     // ------------------------------------
@@ -293,6 +295,13 @@ int main() {
             glm::vec3(7.0f, -0.6f, 8.5f),
     };
 
+    glm::vec3 LaserPositions[] = {
+            glm::vec3(28.0f,5.3f,7.5f),
+            glm::vec3(25.0f,5.3f,7.6f),
+            glm::vec3(26.0f,6.3f,7.6f),
+            glm::vec3(32.0f,7.0f,7.9f),
+    };
+
     // cube VAO
     unsigned int cubeVAO, cubeVBO;
     glGenVertexArrays(1, &cubeVAO);
@@ -334,6 +343,7 @@ int main() {
     unsigned int floorMetalTexture = loadTexture(FileSystem::getPath("resources/textures/metal.png").c_str());
     unsigned int cubeTexture  = loadTexture(FileSystem::getPath("resources/textures/matrix.jpg").c_str());
     unsigned int woodTexture = loadTexture(FileSystem::getPath("resources/textures/wood.png").c_str(), true); // note that we're loading the texture as an SRGB texture
+    unsigned int laserTexture  = loadTexture(FileSystem::getPath("resources/textures/green1.jpg").c_str());
 
 
 
@@ -450,9 +460,13 @@ int main() {
     Model ourModel2("resources/objects/mars/Mars_2K.obj");
     ourModel2.SetShaderTextureNamePrefix("material.");
 
+
+    Model ourModel3("resources/objects/E-45-Aircraft/E_45_Aircraft_obj.obj");
+    ourModel3.SetShaderTextureNamePrefix("material.");
+
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(1.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(3.1f, 3.1f, 3.1f);
+    pointLight.position = glm::vec3(1.0f, 4.0f, 0.0);
+    pointLight.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
@@ -489,7 +503,7 @@ int main() {
         pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
         marsShader.setVec3("pointLight.position", pointLight.position);
         marsShader.setVec3("pointLight.ambient", pointLight.ambient);
-        marsShader.setVec3("pointLight.diffuse",glm::vec3(500.6, 100.6, 100.6));
+        marsShader.setVec3("pointLight.diffuse",glm::vec3(0.6, 0.6, 0.6));
         marsShader.setVec3("pointLight.specular", pointLight.specular);
         marsShader.setFloat("pointLight.constant", pointLight.constant);
         marsShader.setFloat("pointLight.linear", pointLight.linear);
@@ -497,9 +511,34 @@ int main() {
         marsShader.setVec3("viewPosition", programState->camera.Position);
         marsShader.setFloat("material.shininess", 32.0f);
 
+        spaceShip1Shader.use();
+        pointLight.position = glm::vec3(50.7f,-10.21f,20.0f);
+        spaceShip1Shader.setVec3("pointLight.position", pointLight.position);
+        spaceShip1Shader.setVec3("pointLight.ambient", glm::vec3(0.15, 0.15, 0.15));
+        spaceShip1Shader.setVec3("pointLight.diffuse",glm::vec3(50.6, 5.6, 1.6));
+        spaceShip1Shader.setVec3("pointLight.specular", pointLight.specular);
+        spaceShip1Shader.setFloat("pointLight.constant", pointLight.constant);
+        spaceShip1Shader.setFloat("pointLight.linear", pointLight.linear);
+        spaceShip1Shader.setFloat("pointLight.quadratic", pointLight.quadratic);
+        spaceShip1Shader.setVec3("viewPosition", programState->camera.Position);
+        spaceShip1Shader.setFloat("material.shininess", 32.0f);
+
+        spaceShip2Shader.use();
+        pointLight.position = glm::vec3(25.77f,-25.9f,-50.9f);
+        spaceShip2Shader.setVec3("pointLight.position", pointLight.position);
+        spaceShip2Shader.setVec3("pointLight.ambient", glm::vec3(0.1, 0.1, 0.1));
+        spaceShip2Shader.setVec3("pointLight.diffuse",glm::vec3(500.6, 5.6, 0.6));
+        spaceShip2Shader.setVec3("pointLight.specular", pointLight.specular);
+        spaceShip2Shader.setFloat("pointLight.constant", pointLight.constant);
+        spaceShip2Shader.setFloat("pointLight.linear", pointLight.linear);
+        spaceShip2Shader.setFloat("pointLight.quadratic", pointLight.quadratic);
+        spaceShip2Shader.setVec3("viewPosition", programState->camera.Position);
+        spaceShip2Shader.setFloat("material.shininess", 32.0f);
+
         // don't forget to enable shader before setting uniforms
         ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
+      pointLight.position = glm::vec3(5.0 * cos(currentFrame), 4.0f, 5.0 * sin(currentFrame));
+//        pointLight.position = glm::vec3(0.0, 4.0f, 0.0);
         ourShader.setVec3("pointLight.position", pointLight.position);
         ourShader.setVec3("pointLight.ambient", pointLight.ambient);
         ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
@@ -509,7 +548,7 @@ int main() {
         ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
         ourShader.setVec3("viewPosition", programState->camera.Position);
         ourShader.setFloat("material.shininess", 32.0f);
-        shader.setInt("blinn", blinn);
+        ourShader.setInt("blinn", blinn);
 
 
         // view/projection transformations
@@ -531,21 +570,30 @@ int main() {
         ourShader.setMat4("model", model);
         ourModel1.Draw(ourShader);
 
+        //spaceShip1
+        spaceShip1Shader.use();
+        spaceShip1Shader.setMat4("projection", projection);
+        spaceShip1Shader.setMat4("view", view);
         model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               glm::vec3(20.0f,4.0f,5.0f)); // translate it down so it's at the center of the scene
+                               glm::vec3(20.0f,4.0f,8.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        model = glm::rotate(model, 2*1.57f, glm::vec3(1.0f,4.0f,0.0f));
+        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,1.0f,0.33f));
         ourShader.setMat4("model", model);
         ourModel1.Draw(ourShader);
 
+        //SpaceShip2
+        spaceShip2Shader.use();
+        spaceShip2Shader.setMat4("projection", projection);
+        spaceShip2Shader.setMat4("view", view);
         model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               glm::vec3(20.0f,4.0f,-5.0f)); // translate it down so it's at the center of the scene
+                               glm::vec3(35.0f,7.0f,8.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-//        model = glm::rotate(model, 2*1.57f, glm::vec3(1.0f,0.0f,0.0f));
+        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,1.0f,0.0f));
+//        model = glm::rotate(model, 1.57f/2, glm::vec3(0.0f,0.0f,1.0f));
         ourShader.setMat4("model", model);
-        ourModel1.Draw(ourShader);
+        ourModel3.Draw(spaceShip2Shader);
 
         //render the loaded model 2
         marsShader.use();
@@ -553,7 +601,8 @@ int main() {
         marsShader.setMat4("view", view);
         model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               glm::vec3(-20.0f,4.0f,1.0f)); // translate it down so it's at the center of the scene
+                               glm::vec3(35.0f,7.0f,-35.0f)); // translate it down so it's at the center of the scene
+        model = glm::rotate(model, (float)(glfwGetTime()/2), glm::vec3(0.0f,1.0f,0.0f));
         model = glm::scale(model, glm::vec3(2.0f));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel2.Draw(marsShader);
@@ -563,6 +612,17 @@ int main() {
         // floor
         model = glm::mat4(1.0f);
         shaderMetal.use();
+        shaderMetal.setVec3("light.position",  7.0f, -0.6f, 8.5f);
+        shaderMetal.setVec3("viewPos", programState->camera.Position);
+
+        // light properties
+        shaderMetal.setVec3("light.ambient", 0.1f, 0.1f, 0.1f);
+        shaderMetal.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+        shaderMetal.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+        // material properties
+        shaderMetal.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        shaderMetal.setFloat("material.shininess", 32.0f);
         glBindVertexArray(planeVAO);
         glBindTexture(GL_TEXTURE_2D, floorMetalTexture);
         shader.setMat4("projection", projection);
@@ -601,18 +661,6 @@ int main() {
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-//        model = glm::mat4(1.0f);
-//        glBindVertexArray(planeVAO);
-//        glBindTexture(GL_TEXTURE_2D, floorMetalTexture);
-//        shader.setMat4("projection", projection);
-//        shader.setMat4("view", view);
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               glm::vec3(20.0f,0.0f,0.0f)); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
-//        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
-//        shader.setMat4("model", model);
-//        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         for(int i = 0; i < 4; i++) {
             //kocke
@@ -627,31 +675,50 @@ int main() {
             glBindTexture(GL_TEXTURE_2D, cubeTexture);
             model = glm::translate(model, cubePositions[i]);
             model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
-            //TODO POGRESAN SADER IZGLEDA
+            Cubeshader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glDisable(GL_CULL_FACE);
+        }
+
+        //laseri
+        for(int i = 0; i < 4; i++) {
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+            model = glm::mat4(1.0f);
+            Cubeshader.use();
+            Cubeshader.setMat4("view", view);
+            Cubeshader.setMat4("projection", projection);
+            glBindVertexArray(cubeVAO);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, laserTexture);
+            model = glm::translate(model, LaserPositions[i]);
+            model = glm::rotate(model, 1.57f / 4, glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::scale(model, glm::vec3(2.0f, 0.18f, 0.18f));
             shader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 36);
             glDisable(GL_CULL_FACE);
         }
+
 
         shaderLightHdr.use();
         shaderLightHdr.setMat4("projection", projection);
         shaderLightHdr.setMat4("view", view);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
-//         set lighting uniforms
+//       set lighting uniforms
         for (unsigned int i = 0; i < lightPositions.size(); i++)
         {
             shaderLightHdr.setVec3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
             shaderLightHdr.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
         }
         shaderLightHdr.setVec3("viewPos", programState->camera.Position);
-//         render tunnel
+//      render tunnel
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0));
         model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
         shaderLightHdr.setMat4("model", model);
         shaderLightHdr.setInt("inverse_normals", true);
-//        renderCube();
+//      renderCube();
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         ourskyboxShader.use();
@@ -680,160 +747,10 @@ int main() {
 
         std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
 
-//        // render the loaded model
-//        glEnable(GL_CULL_FACE);
-//        glCullFace(GL_FRONT);
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               programState->backpackPosition); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-//        ourShader.setMat4("model", model);
-//        ourModel1.Draw(ourShader);
-//
-//        //render the loaded model 2
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               glm::vec3(-20.0f,4.0f,1.0f)); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(2.0f));    // it's a bit too big for our scene, so scale it down
-//        ourShader.setMat4("model", model);
-//        ourModel2.Draw(ourShader);
-//        glDisable(GL_CULL_FACE);
-//
-//
-//        // floor
-//        model = glm::mat4(1.0f);
-//        shaderMetal.use();
-//        glBindVertexArray(planeVAO);
-//        glBindTexture(GL_TEXTURE_2D, floorMetalTexture);
-//        shader.setMat4("projection", projection);
-//        shader.setMat4("view", view);
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               glm::vec3(0.0f,-0.70f,0.0f)); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(2.0f));
-//        shader.setMat4("model", model);
-//        glDrawArrays(GL_TRIANGLES, 0, 6);
-//
-//        model = glm::mat4(1.0f);
-//        shader.use();
-//        glBindVertexArray(planeVAO);
-//        glBindTexture(GL_TEXTURE_2D, floorTexture);
-//        shader.setMat4("projection", projection);
-//        shader.setMat4("view", view);
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               glm::vec3(9.5f,0.0f,0.0f)); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
-//        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
-//        shader.setMat4("model", model);
-//        glDrawArrays(GL_TRIANGLES, 0, 6);
-//
-//        model = glm::mat4(1.0f);
-//        glBindVertexArray(planeVAO);
-//        glBindTexture(GL_TEXTURE_2D, floorTexture);
-//        shader.setMat4("projection", projection);
-//        shader.setMat4("view", view);
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               glm::vec3(-9.5f,0.0f,0.0f)); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
-//        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
-//        shader.setMat4("model", model);
-//        glDrawArrays(GL_TRIANGLES, 0, 6);
-//
-//        model = glm::mat4(1.0f);
-//        glBindVertexArray(planeVAO);
-//        glBindTexture(GL_TEXTURE_2D, floorMetalTexture);
-//        shader.setMat4("projection", projection);
-//        shader.setMat4("view", view);
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               glm::vec3(20.0f,0.0f,0.0f)); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
-//        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
-//        shader.setMat4("model", model);
-//        glDrawArrays(GL_TRIANGLES, 0, 6);
-//
-//        for(int i = 0; i < 4; i++) {
-//            //kocke
-//            glEnable(GL_CULL_FACE);
-//            glCullFace(GL_BACK);
-//            model = glm::mat4(1.0f);
-//            Cubeshader.use();
-//            Cubeshader.setMat4("view", view);
-//            Cubeshader.setMat4("projection", projection);
-//            glBindVertexArray(cubeVAO);
-//            glActiveTexture(GL_TEXTURE0);
-//            glBindTexture(GL_TEXTURE_2D, cubeTexture);
-//            model = glm::translate(model, cubePositions[i]);
-//            model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
-//            //TODO POGRESAN SADER IZGLEDA
-//            shader.setMat4("model", model);
-//            glDrawArrays(GL_TRIANGLES, 0, 36);
-//            glDisable(GL_CULL_FACE);
-//        }
-
-
-//        //TODO igram se probavam treba sve ispraviti
-//       // 1. render scene into floating point framebuffer
-//       // -----------------------------------------------
-//        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//
-//
-//        shaderLightHdr.use();
-//        shaderLightHdr.setMat4("projection", projection);
-//        shaderLightHdr.setMat4("view", view);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, woodTexture);
-////         set lighting uniforms
-//        for (unsigned int i = 0; i < lightPositions.size(); i++)
-//        {
-//            shaderLightHdr.setVec3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
-//            shaderLightHdr.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
-//        }
-//        shaderLightHdr.setVec3("viewPos", programState->camera.Position);
-////         render tunnel
-//        model = glm::mat4(1.0f);
-//        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0));
-//        model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
-//        shaderLightHdr.setMat4("model", model);
-//        shaderLightHdr.setInt("inverse_normals", true);
-//        renderCube();
-//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//
-//        // 2. now render floating point color buffer to 2D quad and tonemap HDR colors to default framebuffer's (clamped) color range
-//        // --------------------------------------------------------------------------------------------------------------------------
-//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//        hdrShader.use();
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, colorBuffer);
-//        hdrShader.setInt("hdr", hdr);
-//        hdrShader.setFloat("exposure", exposure);
-//        renderQuad();
-//
-//        std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
-
-
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
 
-//        // draw skybox as last
-//        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-//        ourskyboxShader.use();
-//        view = glm::mat4(glm::mat3(programState->camera.GetViewMatrix())); // remove translation from the view matrix
-//        ourskyboxShader.setMat4("view", view);
-//        ourskyboxShader.setMat4("projection", projection);
-//        // skybox cube
-//        glBindVertexArray(skyboxVAO);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-//        glDrawArrays(GL_TRIANGLES, 0, 36);
-//        glBindVertexArray(0);
-//        glDepthFunc(GL_LESS); // set depth function back to default
-
-//
-//        std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
+        std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
