@@ -196,6 +196,7 @@ int main() {
     Shader hdrShader("resources/shaders/6.hdr.vs", "resources/shaders/6.hdr.fs");
     Shader spaceShip1Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
     Shader spaceShip2Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
+    Shader bombShader("resources/shaders/blendingBomb.vs", "resources/shaders/blendingBomb.fs" );
 
     // configure floating point framebuffer
     // ------------------------------------
@@ -339,11 +340,36 @@ int main() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
+    float transparentVertices[] = {
+            // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+            0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+            0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
+            1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+
+            0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+            1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+            1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+    };
+
+    // transparent VAO
+    unsigned int transparentVAO, transparentVBO;
+    glGenVertexArrays(1, &transparentVAO);
+    glGenBuffers(1, &transparentVBO);
+    glBindVertexArray(transparentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
+
     unsigned int floorTexture = loadTexture(FileSystem::getPath("resources/textures/fabric-of-squares.png").c_str());
     unsigned int floorMetalTexture = loadTexture(FileSystem::getPath("resources/textures/metal.png").c_str());
     unsigned int cubeTexture  = loadTexture(FileSystem::getPath("resources/textures/matrix.jpg").c_str());
     unsigned int woodTexture = loadTexture(FileSystem::getPath("resources/textures/wood.png").c_str(), true); // note that we're loading the texture as an SRGB texture
     unsigned int laserTexture  = loadTexture(FileSystem::getPath("resources/textures/green1.jpg").c_str());
+    unsigned int bombTexture  = loadTexture(FileSystem::getPath("resources/textures/pngwing.com.png").c_str());
 
 
 
@@ -481,6 +507,8 @@ int main() {
 
     // render loop
     // -----------
+    float move_delta = 0.0, x, y, z;
+    bool to_rotate = true;
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
@@ -500,10 +528,10 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         marsShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
+        pointLight.position = glm::vec3(65.0f*sin(currentFrame), 6.0f, -20.0f*cos(currentFrame));
         marsShader.setVec3("pointLight.position", pointLight.position);
         marsShader.setVec3("pointLight.ambient", pointLight.ambient);
-        marsShader.setVec3("pointLight.diffuse",glm::vec3(0.6, 0.6, 0.6));
+        marsShader.setVec3("pointLight.diffuse",glm::vec3(200.6, 200.6, 200.6));
         marsShader.setVec3("pointLight.specular", pointLight.specular);
         marsShader.setFloat("pointLight.constant", pointLight.constant);
         marsShader.setFloat("pointLight.linear", pointLight.linear);
@@ -567,6 +595,25 @@ int main() {
         model = glm::translate(model,
                                programState->backpackPosition); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+
+        move_delta = glfwGetTime();
+
+        if(move_delta < 10.0){
+            y = 0.0 + move_delta;
+            z = 0.0 + move_delta;
+            model = glm::translate(model, glm::vec3(0.0, y, z));
+        } else if (move_delta < 10.5){
+            z += move_delta / 50;
+            model = glm::translate(model, glm::vec3(0.0, y, z));
+            z *= 1.00000005;
+        } else if (move_delta < 14.0){
+            x += move_delta / 50;
+            model = glm::translate(model, glm::vec3(x, y, z));
+            model = glm::rotate(model, 1.57f, glm::vec3(0.0,1.0,0.0));
+        }
+
+
+// model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0,0.0,1.0));
         ourShader.setMat4("model", model);
         ourModel1.Draw(ourShader);
 
@@ -602,7 +649,7 @@ int main() {
         model = glm::mat4(1.0f);
         model = glm::translate(model,
                                glm::vec3(35.0f,7.0f,-35.0f)); // translate it down so it's at the center of the scene
-        model = glm::rotate(model, (float)(glfwGetTime()/2), glm::vec3(0.0f,1.0f,0.0f));
+//        model = glm::rotate(model, (float)(glfwGetTime()/2), glm::vec3(0.0f,1.0f,0.0f));
         model = glm::scale(model, glm::vec3(2.0f));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel2.Draw(marsShader);
@@ -623,6 +670,7 @@ int main() {
         // material properties
         shaderMetal.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
         shaderMetal.setFloat("material.shininess", 32.0f);
+
         glBindVertexArray(planeVAO);
         glBindTexture(GL_TEXTURE_2D, floorMetalTexture);
         shader.setMat4("projection", projection);
@@ -634,6 +682,7 @@ int main() {
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        //transparent wall
         model = glm::mat4(1.0f);
         shader.use();
         glBindVertexArray(planeVAO);
@@ -659,6 +708,21 @@ int main() {
         model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
         model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
         shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        //bomba
+        model = glm::mat4(1.0f);
+        bombShader.use();
+        glBindVertexArray(transparentVAO);
+        glBindTexture(GL_TEXTURE_2D, bombTexture);
+        bombShader.setMat4("projection", projection);
+        bombShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               glm::vec3(32.2f,6.5f,8.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(3.0f,3.0f,6.0f));
+        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
+        bombShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
@@ -745,12 +809,12 @@ int main() {
         hdrShader.setFloat("exposure", exposure);
         renderQuad();
 
-        std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
+//        std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
 
-        std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
+//        std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
