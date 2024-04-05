@@ -69,8 +69,10 @@ struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 backpackPosition = glm::vec3(0.0f);
-    float backpackScale = 1.0f;
+    bool hdrKeyPressed = true;
+    bool blinn = true;
+    glm::vec3 spaceshipPosition = glm::vec3(0.0f);
+    float spaceshipScale = 1.0f;
     PointLight pointLight;
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
@@ -128,7 +130,7 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Space station", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -186,14 +188,14 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
-    Shader marsShader("resources/shaders/2.model_lighting_mars.vs", "resources/shaders/2.model_lighting_mars.fs");
-    Shader ourskyboxShader("resources/shaders/6.1.skybox.vs", "resources/shaders/6.1.skybox.fs");
-    Shader shader("resources/shaders/3.2.blending.vs", "resources/shaders/3.2.blending.fs");
+    Shader ourShader("resources/shaders/model_lighting.vs", "resources/shaders/model_lighting.fs");
+    Shader marsShader("resources/shaders/model_lighting_mars.vs", "resources/shaders/model_lighting_mars.fs");
+    Shader ourskyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.fs");
+    Shader shader("resources/shaders/blending.vs", "resources/shaders/blending.fs");
     Shader shaderMetal("resources/shaders/metalblending.vs","resources/shaders/metalblending.fs");
-    Shader Cubeshader("resources/shaders/4.2.face_culling.vs", "resources/shaders/4.2.face_culling.fs");
-    Shader shaderLightHdr("resources/shaders/6.lighting.vs", "resources/shaders/6.lighting.fs");
-    Shader hdrShader("resources/shaders/6.hdr.vs", "resources/shaders/6.hdr.fs");
+    Shader Cubeshader("resources/shaders/face_culling.vs", "resources/shaders/face_culling.fs");
+    Shader shaderLightHdr("resources/shaders/lighting.vs", "resources/shaders/lighting.fs");
+    Shader hdrShader("resources/shaders/hdr.vs", "resources/shaders/hdr.fs");
     Shader spaceShip1Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
     Shader spaceShip2Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
     Shader bombShader("resources/shaders/blendingBomb.vs", "resources/shaders/blendingBomb.fs" );
@@ -365,8 +367,8 @@ int main() {
     glBindVertexArray(0);
 
     unsigned int floorTexture = loadTexture(FileSystem::getPath("resources/textures/fabric-of-squares.png").c_str());
-    unsigned int floorMetalTexture = loadTexture(FileSystem::getPath("resources/textures/metal.png").c_str());
-    unsigned int cubeTexture  = loadTexture(FileSystem::getPath("resources/textures/matrix.jpg").c_str());
+    unsigned int floorMetalTexture = loadTexture(FileSystem::getPath("resources/textures/metal_tex.jpg").c_str());
+    unsigned int cubeTexture  = loadTexture(FileSystem::getPath("resources/textures/matrix_sredjen.jpg").c_str());
     unsigned int woodTexture = loadTexture(FileSystem::getPath("resources/textures/wood.png").c_str(), true); // note that we're loading the texture as an SRGB texture
     unsigned int laserTexture  = loadTexture(FileSystem::getPath("resources/textures/green1.jpg").c_str());
     unsigned int bombTexture  = loadTexture(FileSystem::getPath("resources/textures/pngwing.com.png").c_str());
@@ -431,33 +433,6 @@ int main() {
     //skybox
     vector<std::string> faces
             {
-//                    FileSystem::getPath("resources/textures/arctic/arctic_lf.tga"),
-//                    FileSystem::getPath("resources/textures/arctic/arctic_rt.tga"),
-//                    FileSystem::getPath("resources/textures/arctic/arctic_up.tga"),
-//                    FileSystem::getPath("resources/textures/arctic/arctic_bk.tga"),
-//                    FileSystem::getPath("resources/textures/arctic/arctic_ft.tga"),
-//                    FileSystem::getPath("resources/textures/arctic/arctic_dn.tga")
-
-//                    FileSystem::getPath("resources/textures/Footballfield/posx.jpg"),
-//                    FileSystem::getPath("resources/textures/Footballfield/negx.jpg"),
-//                    FileSystem::getPath("resources/textures/Footballfield/posy.jpg"),
-//                    FileSystem::getPath("resources/textures/Footballfield/negy.jpg"),
-//                    FileSystem::getPath("resources/textures/Footballfield/posz.jpg"),
-//                    FileSystem::getPath("resources/textures/Footballfield/negz.jpg")
-
-//                    FileSystem::getPath("resources/textures/ulukai/corona_lf.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_rt.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_up.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_dn.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_ft.png"),
-//                    FileSystem::getPath("resources/textures/ulukai/corona_bk.png")
-
-//                    FileSystem::getPath("resources/textures/xpos.png"),
-//                    FileSystem::getPath("resources/textures/xneg.png"),
-//                    FileSystem::getPath("resources/textures/ypos.png"),
-//                    FileSystem::getPath("resources/textures/yneg.png"),
-//                    FileSystem::getPath("resources/textures/zpos.png"),
-//                    FileSystem::getPath("resources/textures/zneg.png")
 
                     FileSystem::getPath("resources/textures/svemir1/skybox_right.png"),
                     FileSystem::getPath("resources/textures/svemir1/skybox_left.png"),
@@ -466,12 +441,6 @@ int main() {
                     FileSystem::getPath("resources/textures/svemir1/skybox_back.png"),
                     FileSystem::getPath("resources/textures/svemir1/skybox_front.png")
 
-//                    FileSystem::getPath("resources/textures/galaxy/galaxy+X.tga"),
-//                    FileSystem::getPath("resources/textures/galaxy/galaxy-X.tga"),
-//                    FileSystem::getPath("resources/textures/galaxy/galaxy+Y.tga"),
-//                    FileSystem::getPath("resources/textures/galaxy/galaxy-Y.tga"),
-//                    FileSystem::getPath("resources/textures/galaxy/galaxy+Z.tga"),
-//                    FileSystem::getPath("resources/textures/galaxy/galaxy-Z.tga")
             };
     unsigned int cubemapTexture = loadCubemap(faces);
     ourskyboxShader.use();
@@ -593,8 +562,8 @@ int main() {
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+                               programState->spaceshipPosition); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(programState->spaceshipScale));    // it's a bit too big for our scene, so scale it down
 
         move_delta = glfwGetTime();
 
@@ -607,7 +576,7 @@ int main() {
             model = glm::translate(model, glm::vec3(0.0, y, z));
             z *= 1.00000005;
         } else if (move_delta < 14.0){
-            x += move_delta / 50;
+            x += move_delta / 40;
             model = glm::translate(model, glm::vec3(x, y, z));
             model = glm::rotate(model, 1.57f, glm::vec3(0.0,1.0,0.0));
         }
@@ -624,7 +593,7 @@ int main() {
         model = glm::mat4(1.0f);
         model = glm::translate(model,
                                glm::vec3(20.0f,4.0f,8.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(programState->spaceshipScale));    // it's a bit too big for our scene, so scale it down
         model = glm::rotate(model, 1.57f, glm::vec3(0.0f,1.0f,0.33f));
         ourShader.setMat4("model", model);
         ourModel1.Draw(ourShader);
@@ -636,7 +605,7 @@ int main() {
         model = glm::mat4(1.0f);
         model = glm::translate(model,
                                glm::vec3(35.0f,7.0f,8.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(programState->spaceshipScale));    // it's a bit too big for our scene, so scale it down
         model = glm::rotate(model, 1.57f, glm::vec3(0.0f,1.0f,0.0f));
 //        model = glm::rotate(model, 1.57f/2, glm::vec3(0.0f,0.0f,1.0f));
         ourShader.setMat4("model", model);
@@ -815,7 +784,6 @@ int main() {
             DrawImGui(programState);
 
 //        std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
-
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -861,13 +829,24 @@ void processInput(GLFWwindow *window) {
         blinnKeyPressed = false;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !hdrKeyPressed)
+    if (programState->blinn && !blinnKeyPressed)
     {
-        hdr = !hdr;
+        blinn = true;
+        blinnKeyPressed = true;
+    }
+    if (!programState->blinn)
+    {
+        blinn = false;
+        blinnKeyPressed = false;
+    }
+
+
+    if(programState->hdrKeyPressed && !hdrKeyPressed){
+        hdr  = true;
         hdrKeyPressed = true;
     }
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
-    {
+    if(!programState->hdrKeyPressed){
+        hdr = false;
         hdrKeyPressed = false;
     }
 
@@ -925,16 +904,21 @@ void DrawImGui(ProgramState *programState) {
 
     {
         static float f = 0.0f;
-        ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
+        ImGui::Begin("Control center");
+        ImGui::Text("Enjoy and experiment");
         ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
-        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
+//        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
+        ImGui::DragFloat3("Spaceship position", (float*)&programState->spaceshipPosition);
+        ImGui::DragFloat("Spaceship scale", &programState->spaceshipScale, 0.05, 0.1, 4.0);
 
         ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
         ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
         ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
+        ImGui::DragFloat3("pointLight.diffuse", (float*)&programState->pointLight.diffuse);
+//        ImGui::DragFloat3("pointLight.ambient", (float*)&programState->pointLight.ambient);
+        ImGui::DragFloat3("pointLight.specular", (float*)&programState->pointLight.specular);
+        ImGui::Checkbox("HDR", &programState->hdrKeyPressed);
+        ImGui::Checkbox("BLINN", &programState->blinn);
         ImGui::End();
     }
 
@@ -962,6 +946,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
+
 }
 
 unsigned int loadCubemap(vector<std::string> faces)
