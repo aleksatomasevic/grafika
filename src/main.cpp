@@ -27,7 +27,6 @@ void processInput(GLFWwindow *window);
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 unsigned int loadTexture(const char *path);
-unsigned int loadTexture(char const * path, bool gammaCorrection);
 unsigned int loadCubemap(vector<std::string> faces);
 void renderQuad();
 
@@ -479,7 +478,7 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         marsShader.use();
-        pointLight.position = glm::vec3(65.0f*sin(currentFrame), 11.0f, -20.0f*cos(currentFrame));
+        pointLight.position = glm::vec3(60.0f*sin(currentFrame), 18.0f, -20.0f*cos(currentFrame));
         marsShader.setVec3("pointLight.position", pointLight.position);
         marsShader.setVec3("pointLight.ambient", pointLight.ambient);
         marsShader.setVec3("pointLight.diffuse",glm::vec3(200.6, 200.6, 200.6));
@@ -596,7 +595,7 @@ int main() {
         marsShader.setMat4("view", view);
         model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               glm::vec3(35.0f,12.0f,-35.0f)); // translate it down so it's at the center of the scene
+                               glm::vec3(30.0f,19.0f,-35.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(2.0f));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel2.Draw(marsShader);
@@ -950,52 +949,6 @@ unsigned int loadTexture(char const * path)
 
     return textureID;
 
-}
-
-unsigned int loadTexture(char const * path, bool gammaCorrection)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrComponents;
-    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
-        GLenum internalFormat;
-        GLenum dataFormat;
-        if (nrComponents == 1)
-        {
-            internalFormat = dataFormat = GL_RED;
-        }
-        else if (nrComponents == 3)
-        {
-            internalFormat = gammaCorrection ? GL_SRGB : GL_RGB;
-            dataFormat = GL_RGB;
-        }
-        else if (nrComponents == 4)
-        {
-            internalFormat = gammaCorrection ? GL_SRGB_ALPHA : GL_RGBA;
-            dataFormat = GL_RGBA;
-        }
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_image_free(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
-
-    return textureID;
 }
 
 // renderQuad() renders a 1x1 XY quad in NDC
