@@ -30,8 +30,6 @@ unsigned int loadTexture(const char *path);
 unsigned int loadTexture(char const * path, bool gammaCorrection);
 unsigned int loadCubemap(vector<std::string> faces);
 void renderQuad();
-void renderCube();
-
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -41,7 +39,6 @@ bool blinnKeyPressed = false;
 bool hdr = true;
 bool hdrKeyPressed = false;
 float exposure = 1.0f;
-
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
@@ -130,7 +127,7 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Space station", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Space station under attack!", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -161,9 +158,9 @@ int main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // TODO 01: Change culling
-    //    glEnable(GL_CULL_FACE);
-    //    glCullFace(GL_BACK);
+    // Change culling
+    // glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
     glFrontFace(GL_CW);
 
     programState = new ProgramState;
@@ -176,7 +173,6 @@ int main() {
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void) io;
-
 
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -194,7 +190,6 @@ int main() {
     Shader shader("resources/shaders/blending.vs", "resources/shaders/blending.fs");
     Shader shaderMetal("resources/shaders/metalblending.vs","resources/shaders/metalblending.fs");
     Shader Cubeshader("resources/shaders/face_culling.vs", "resources/shaders/face_culling.fs");
-    Shader shaderLightHdr("resources/shaders/lighting.vs", "resources/shaders/lighting.fs");
     Shader hdrShader("resources/shaders/hdr.vs", "resources/shaders/hdr.fs");
     Shader spaceShip1Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
     Shader spaceShip2Shader("resources/shaders/space_ship_1.vs", "resources/shaders/space_ship_1.fs" );
@@ -224,25 +219,9 @@ int main() {
         std::cout << "Framebuffer not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // lighting info
-    // -------------
-    // positions
-    std::vector<glm::vec3> lightPositions;
-    lightPositions.push_back(glm::vec3( 0.0f,  0.0f, 49.5f)); // back light
-    lightPositions.push_back(glm::vec3(-1.4f, -1.9f, 9.0f));
-    lightPositions.push_back(glm::vec3( 0.0f, -1.8f, 4.0f));
-    lightPositions.push_back(glm::vec3( 0.8f, -1.7f, 6.0f));
-    // colors
-    std::vector<glm::vec3> lightColors;
-    lightColors.push_back(glm::vec3(200.0f, 200.0f, 200.0f));
-    lightColors.push_back(glm::vec3(0.1f, 0.0f, 0.0f));
-    lightColors.push_back(glm::vec3(0.0f, 0.0f, 0.2f));
-    lightColors.push_back(glm::vec3(0.0f, 0.1f, 0.0f));
 
     // shader configuration
     // --------------------
-    shaderLightHdr.use();
-    shaderLightHdr.setInt("diffuseTexture", 0);
     hdrShader.use();
     hdrShader.setInt("hdrBuffer", 0);
 
@@ -303,6 +282,12 @@ int main() {
             glm::vec3(25.0f,5.3f,7.6f),
             glm::vec3(26.0f,6.3f,7.6f),
             glm::vec3(32.0f,7.0f,7.9f),
+    };
+
+    glm::vec3 transparentPositions[] = {
+            glm::vec3(9.5f,0.0f,0.0f),
+            glm::vec3(-9.5f,0.0f,0.0f),
+
     };
 
     // cube VAO
@@ -369,7 +354,6 @@ int main() {
     unsigned int floorTexture = loadTexture(FileSystem::getPath("resources/textures/fabric-of-squares.png").c_str());
     unsigned int floorMetalTexture = loadTexture(FileSystem::getPath("resources/textures/metal_tex.jpg").c_str());
     unsigned int cubeTexture  = loadTexture(FileSystem::getPath("resources/textures/matrix_sredjen.jpg").c_str());
-    unsigned int woodTexture = loadTexture(FileSystem::getPath("resources/textures/wood.png").c_str(), true); // note that we're loading the texture as an SRGB texture
     unsigned int laserTexture  = loadTexture(FileSystem::getPath("resources/textures/green1.jpg").c_str());
     unsigned int bombTexture  = loadTexture(FileSystem::getPath("resources/textures/pngwing.com.png").c_str());
 
@@ -436,7 +420,7 @@ int main() {
 
                     FileSystem::getPath("resources/textures/svemir1/skybox_right.png"),
                     FileSystem::getPath("resources/textures/svemir1/skybox_left.png"),
-                    FileSystem::getPath("resources/textures/svemir1/skybox_up.png"),
+                    FileSystem::getPath("resources/textures/svemir1/skybox_up_rotate.png"),
                     FileSystem::getPath("resources/textures/svemir1/skybox_down_rotate.png"),
                     FileSystem::getPath("resources/textures/svemir1/skybox_back.png"),
                     FileSystem::getPath("resources/textures/svemir1/skybox_front.png")
@@ -469,8 +453,6 @@ int main() {
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
 
-
-
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -497,7 +479,7 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         marsShader.use();
-        pointLight.position = glm::vec3(65.0f*sin(currentFrame), 6.0f, -20.0f*cos(currentFrame));
+        pointLight.position = glm::vec3(65.0f*sin(currentFrame), 11.0f, -20.0f*cos(currentFrame));
         marsShader.setVec3("pointLight.position", pointLight.position);
         marsShader.setVec3("pointLight.ambient", pointLight.ambient);
         marsShader.setVec3("pointLight.diffuse",glm::vec3(200.6, 200.6, 200.6));
@@ -532,10 +514,8 @@ int main() {
         spaceShip2Shader.setVec3("viewPosition", programState->camera.Position);
         spaceShip2Shader.setFloat("material.shininess", 32.0f);
 
-        // don't forget to enable shader before setting uniforms
         ourShader.use();
-      pointLight.position = glm::vec3(5.0 * cos(currentFrame), 4.0f, 5.0 * sin(currentFrame));
-//        pointLight.position = glm::vec3(0.0, 4.0f, 0.0);
+        pointLight.position = glm::vec3(3.0 * cos(currentFrame), 3.0f, 3.0 * sin(currentFrame));
         ourShader.setVec3("pointLight.position", pointLight.position);
         ourShader.setVec3("pointLight.ambient", pointLight.ambient);
         ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
@@ -560,6 +540,8 @@ int main() {
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
                                programState->spaceshipPosition); // translate it down so it's at the center of the scene
@@ -571,7 +553,7 @@ int main() {
             y = 0.0 + move_delta;
             z = 0.0 + move_delta;
             model = glm::translate(model, glm::vec3(0.0, y, z));
-        } else if (move_delta < 10.5){
+        } else if (move_delta < 11.0){
             z += move_delta / 50;
             model = glm::translate(model, glm::vec3(0.0, y, z));
             z *= 1.00000005;
@@ -581,8 +563,6 @@ int main() {
             model = glm::rotate(model, 1.57f, glm::vec3(0.0,1.0,0.0));
         }
 
-
-// model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0,0.0,1.0));
         ourShader.setMat4("model", model);
         ourModel1.Draw(ourShader);
 
@@ -607,7 +587,6 @@ int main() {
                                glm::vec3(35.0f,7.0f,8.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->spaceshipScale));    // it's a bit too big for our scene, so scale it down
         model = glm::rotate(model, 1.57f, glm::vec3(0.0f,1.0f,0.0f));
-//        model = glm::rotate(model, 1.57f/2, glm::vec3(0.0f,0.0f,1.0f));
         ourShader.setMat4("model", model);
         ourModel3.Draw(spaceShip2Shader);
 
@@ -617,8 +596,7 @@ int main() {
         marsShader.setMat4("view", view);
         model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               glm::vec3(35.0f,7.0f,-35.0f)); // translate it down so it's at the center of the scene
-//        model = glm::rotate(model, (float)(glfwGetTime()/2), glm::vec3(0.0f,1.0f,0.0f));
+                               glm::vec3(35.0f,12.0f,-35.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(2.0f));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel2.Draw(marsShader);
@@ -651,34 +629,6 @@ int main() {
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        //transparent wall
-        model = glm::mat4(1.0f);
-        shader.use();
-        glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-        shader.setMat4("projection", projection);
-        shader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               glm::vec3(9.5f,0.0f,0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
-        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        model = glm::mat4(1.0f);
-        glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-        shader.setMat4("projection", projection);
-        shader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               glm::vec3(-9.5f,0.0f,0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f,2.0f,1.0f));
-        model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
         //bomba
         model = glm::mat4(1.0f);
         bombShader.use();
@@ -693,7 +643,6 @@ int main() {
         model = glm::rotate(model, 1.57f, glm::vec3(0.0f,0.0f,1.0f));
         bombShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-
 
         for(int i = 0; i < 4; i++) {
             //kocke
@@ -732,26 +681,23 @@ int main() {
             glDisable(GL_CULL_FACE);
         }
 
-
-        shaderLightHdr.use();
-        shaderLightHdr.setMat4("projection", projection);
-        shaderLightHdr.setMat4("view", view);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, woodTexture);
-//       set lighting uniforms
-        for (unsigned int i = 0; i < lightPositions.size(); i++)
-        {
-            shaderLightHdr.setVec3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
-            shaderLightHdr.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
+        //transparent wall
+        for(int i = 0; i < 2; i++) {
+            model = glm::mat4(1.0f);
+            shader.use();
+            glBindVertexArray(planeVAO);
+            glBindTexture(GL_TEXTURE_2D, floorTexture);
+            shader.setMat4("projection", projection);
+            shader.setMat4("view", view);
+            model = glm::mat4(1.0f);
+            model = glm::translate(model,
+                                   transparentPositions[i]); // translate it down so it's at the center of the scene
+            model = glm::scale(model, glm::vec3(1.0f, 2.0f, 1.0f));
+            model = glm::rotate(model, 1.57f, glm::vec3(0.0f, 0.0f, 1.0f));
+            shader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         }
-        shaderLightHdr.setVec3("viewPos", programState->camera.Position);
-//      render tunnel
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0));
-        model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
-        shaderLightHdr.setMat4("model", model);
-        shaderLightHdr.setInt("inverse_normals", true);
-//      renderCube();
+
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         ourskyboxShader.use();
@@ -819,16 +765,6 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(RIGHT, deltaTime);
 
-    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !blinnKeyPressed)
-    {
-        blinn = !blinn;
-        blinnKeyPressed = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE)
-    {
-        blinnKeyPressed = false;
-    }
-
     if (programState->blinn && !blinnKeyPressed)
     {
         blinn = true;
@@ -839,7 +775,6 @@ void processInput(GLFWwindow *window) {
         blinn = false;
         blinnKeyPressed = false;
     }
-
 
     if(programState->hdrKeyPressed && !hdrKeyPressed){
         hdr  = true;
@@ -1091,80 +1026,5 @@ void renderQuad()
     }
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glBindVertexArray(0);
-}
-
-// renderCube() renders a 1x1 3D cube in NDC.
-// -------------------------------------------------
-unsigned int cubeVAO = 0;
-unsigned int cubeVBO = 0;
-void renderCube()
-{
-    // initialize (if necessary)
-    if (cubeVAO == 0)
-    {
-        float vertices[] = {
-                // back face
-                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-                1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-                1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right
-                1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-                -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-                // front face
-                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-                1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-                1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-                1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-                -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-                // left face
-                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-                -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-                -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-                // right face
-                1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-                1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-                1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right
-                1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-                1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-                1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left
-                // bottom face
-                -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-                1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-                1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-                1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-                -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-                -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-                // top face
-                -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-                1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-                1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right
-                1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-                -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-                -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left
-        };
-        glGenVertexArrays(1, &cubeVAO);
-        glGenBuffers(1, &cubeVBO);
-        // fill buffer
-        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // link vertex attributes
-        glBindVertexArray(cubeVAO);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
-    // render Cube
-    glBindVertexArray(cubeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }
